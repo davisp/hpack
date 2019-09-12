@@ -1,0 +1,35 @@
+Tests
+===
+
+Test decision on compression short strings? I.e., should we ship ship strings
+smaller than a few bytes without huffman encoding?
+
+Does dynamic size change need to precede all headers?
+
+
+Test invalid packet returns rest of the binary
+
+Encode dynamic index 63 in a single byte
+
+Resize to bigger does not evict elements
+Resizing evicts for each:
+    0 elements
+    1 element
+    more than one element
+    all elements
+
+Reuse the index entry of a static defined name/value header
+
+Ensure we use static index entries for name_indexed instead of a value in the
+    dynamic table
+
+Adding an index entry can evict:
+    Zero entries
+    One entry
+    More than one entry
+    All entries
+    All entries resulting in an empty table
+
+
+Huffman encoding includes EOS
+Huffman encoding doesn't end on prefix of EOS
