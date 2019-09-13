@@ -14,15 +14,20 @@
 
 
 encode(Bin) ->
-    encode(Bin, [], 0).
+    try
+        encode(Bin, [], 0, size(Bin) * 8)
+    catch throw:compressed_larger ->
+        {error, compressed_larger}
+    end.
 
 
 decode(Bin) ->
     decode(Bin, ?HUFFMAN_TREE, ?HUFFMAN_TREE, false, []).
 
 
-encode(<<>>, Acc, Size) ->
-    Tail = case 8 - (Size rem 8) of
+encode(<<>>, Acc, Size, OrigSize) ->
+    Remainder = Size rem 8,
+    Tail = case 8 - Remainder of
         1 -> [<<  1:1>>];
         2 -> [<<  3:2>>];
         3 -> [<<  7:3>>];
@@ -32,11 +37,19 @@ encode(<<>>, Acc, Size) ->
         7 -> [<<127:7>>];
         8 -> []
     end,
+    Extra = if Remainder == 0 -> 0; true -> 8 - Remainder end,
+    if Size + Extra < OrigSize -> ok; true ->
+        throw(compressed_larger)
+    end,
     list_to_bitstring(lists:reverse(Acc, Tail));
 
-encode(<<Byte:8, Rest/binary>>, Acc, Size) ->
+encode(<<Byte:8, Rest/binary>>, Acc, Size, OrigSize) ->
     Code = element(Byte + 1, ?HUFFMAN_CODES),
-    encode(Rest, [Code | Acc], Size + bit_size(Code)).
+    if Size + bit_size(Code) < OrigSize -> ok; true ->
+        io:format(standard_error, "b: ~p vs ~p~n", [Size + bit_size(Code), OrigSize]),
+        throw(compressed_larger)
+    end,
+    encode(Rest, [Code | Acc], Size + bit_size(Code), OrigSize).
 
 
 decode(<<>>, _, _, ZeroSeen, Acc) ->

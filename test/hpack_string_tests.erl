@@ -30,7 +30,7 @@ roundtrip_sequential_test() ->
     lists:foreach(fun(IntValue) ->
         roundtrip(integer_to_binary(IntValue), []),
         roundtrip(integer_to_binary(IntValue), [uncompressed])
-    end, lists:seq(0, 1024)).
+    end, lists:seq(0, 512)).
 
 
 roundtrip_random_test() ->
@@ -38,7 +38,7 @@ roundtrip_random_test() ->
         Value = hpack_tutil:random_bin(256),
         roundtrip(Value, []),
         roundtrip(Value, [uncompressed])
-    end, lists:seq(0, 1024)).
+    end, lists:seq(0, 512)).
 
 
 roundtrip(Value, Opts) ->

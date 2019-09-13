@@ -15,23 +15,22 @@ c_1_2_test() ->
 
 
 c_2_1_test() ->
-    Ctx = hpack:new_context(),
     Headers = [
-        {<<"custom-key">>, <<"custom-value">>, [uncompressed]}
+        {<<"custom-key">>, <<"custom-header">>, [uncompressed]}
     ],
     Hex = <<"
         400a 6375 7374 6f6d 2d6b 6579 0d63 7573
         746f 6d2d 6865 6164 6572
     ">>,
     Table = {55, [
-        {1, <<"custom-key">>, <<"custom-value">>}
+        {1, <<"custom-key">>, <<"custom-header">>}
     ]},
 
-    check_correct(Ctx, Headers, Hex, Table).
+    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
 c_2_2_test() ->
-    Ctx = hpack:new_context(),
     Headers = [
         {<<":path">>, <<"/sample/path">>, [uncompressed, no_index]}
     ],
@@ -40,14 +39,14 @@ c_2_2_test() ->
     ">>,
     Table = {0, []},
 
-    check_correct(Ctx, Headers, Hex, Table).
-
+    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
 c_2_3_test() ->
-    Ctx = hpack:new_context(),
+    HeaderOpts = [uncompressed, never_index, no_name_index],
     Headers = [
-        {<<"password">>, <<"secret">>, [uncompressed, never_indexed]}
+        {<<"password">>, <<"secret">>, HeaderOpts}
     ],
     Hex = <<"
         1008 7061 7373 776f 7264 0673 6563 7265
@@ -55,18 +54,20 @@ c_2_3_test() ->
     ">>,
     Table = {0, []},
 
-    check_correct(Ctx, Headers, Hex, Table).
+    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
 c_2_4_test() ->
-    Ctx = hpack:new_context(),
     Headers = [{<<":method">>, <<"GET">>}],
     Hex = <<"
         82
     ">>,
     Table = {0, []},
 
-    check_correct(Ctx, Headers, Hex, Table).
+    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    check_correct(ECtx, DCtx, Headers, Hex, Table).
+
 
 
 c_3_test() ->
@@ -116,10 +117,10 @@ c_3_test() ->
         {3, <<":authority">>, <<"www.example.com">>}
     ]},
 
-    Ctx1 = hpack:new_context(),
-    Ctx2 = check_correct(Ctx1, Headers1, Hex1, Table1),
-    Ctx3 = check_correct(Ctx2, Headers2, Hex2, Table2),
-    check_correct(Ctx3, Headers3, Hex3, Table3).
+    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
+    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
+    check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
 
 
 c_4_test() ->
@@ -169,10 +170,10 @@ c_4_test() ->
         {3, <<":authority">>, <<"www.example.com">>}
     ]},
 
-    Ctx1 = hpack:new_context(),
-    Ctx2 = check_correct(Ctx1, Headers1, Hex1, Table1),
-    Ctx3 = check_correct(Ctx2, Headers2, Hex2, Table2),
-    check_correct(Ctx3, Headers3, Hex3, Table3).
+    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
+    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
+    check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
 
 
 c_5_test() ->
@@ -190,7 +191,7 @@ c_5_test() ->
         6c65 2e63 6f6d
     ">>,
     Table1 = {222, [
-        {1, <<"location">>, <<"https://wwww.example.com">>},
+        {1, <<"location">>, <<"https://www.example.com">>},
         {2, <<"date">>, <<"Mon, 21 Oct 2013 20:13:21 GMT">>},
         {3, <<"cache-control">>, <<"private">>},
         {4, <<":status">>, <<"302">>}
@@ -207,7 +208,7 @@ c_5_test() ->
     ">>,
     Table2 = {222, [
         {1, <<":status">>, <<"307">>},
-        {2, <<"location">>, <<"https://wwww.example.com">>},
+        {2, <<"location">>, <<"https://www.example.com">>},
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:21 GMT">>},
         {4, <<"cache-control">>, <<"private">>}
     ]},
@@ -216,6 +217,7 @@ c_5_test() ->
         {<<":status">>, <<"200">>},
         {<<"cache-control">>, <<"private">>, [uncompressed]},
         {<<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>, [uncompressed]},
+        {<<"location">>, <<"https://www.example.com">>},
         {<<"content-encoding">>, <<"gzip">>, [uncompressed]},
         {
             <<"set-cookie">>,
@@ -242,10 +244,10 @@ c_5_test() ->
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>}
     ]},
 
-    Ctx1 = hpack:new_context(256),
-    Ctx2 = check_correct(Ctx1, Headers1, Hex1, Table1),
-    Ctx3 = check_correct(Ctx2, Headers2, Hex2, Table2),
-    check_correct(Ctx3, Headers3, Hex3, Table3).
+    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
+    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
+    check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
 
 
 c_6_test() ->
@@ -262,7 +264,7 @@ c_6_test() ->
         e9ae 82ae 43d3
     ">>,
     Table1 = {222, [
-        {1, <<"location">>, <<"https://wwww.example.com">>},
+        {1, <<"location">>, <<"https://www.example.com">>},
         {2, <<"date">>, <<"Mon, 21 Oct 2013 20:13:21 GMT">>},
         {3, <<"cache-control">>, <<"private">>},
         {4, <<":status">>, <<"302">>}
@@ -279,7 +281,7 @@ c_6_test() ->
     ">>,
     Table2 = {222, [
         {1, <<":status">>, <<"307">>},
-        {2, <<"location">>, <<"https://wwww.example.com">>},
+        {2, <<"location">>, <<"https://www.example.com">>},
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:21 GMT">>},
         {4, <<"cache-control">>, <<"private">>}
     ]},
@@ -288,6 +290,7 @@ c_6_test() ->
         {<<":status">>, <<"200">>},
         {<<"cache-control">>, <<"private">>},
         {<<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>},
+        {<<"location">>, <<"https://www.example.com">>},
         {<<"content-encoding">>, <<"gzip">>},
         {
             <<"set-cookie">>,
@@ -311,21 +314,27 @@ c_6_test() ->
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>}
     ]},
 
-    Ctx1 = hpack:new_context(256),
-    Ctx2 = check_correct(Ctx1, Headers1, Hex1, Table1),
-    Ctx3 = check_correct(Ctx2, Headers2, Hex2, Table2),
-    check_correct(Ctx3, Headers3, Hex3, Table3).
+    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
+    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
+    check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
 
 
 
-check_correct(Ctx, Headers, HexEncoded, Table) ->
+check_correct(ECtx1, DCtx1, Headers, HexEncoded, Table) ->
     Encoded = hpack_tutil:dehex(HexEncoded),
-    {ok, EncCtx, EncodeResult} = hpack:encode(Ctx, Headers),
-    {ok, DecCtx, DecodeResult} = hpack:decode(Ctx, Encoded),
+    {ok, ECtx2, EncodeResult} = hpack:encode(ECtx1, Headers),
+    {ok, DCtx2, DecodeResult} = hpack:decode(DCtx1, Encoded),
+
+    io:format(standard_error, "~n========~n~p~n~n~p~n~n", [
+        hpack:explain(DCtx1, Encoded),
+        hpack:explain(DCtx1, EncodeResult)
+    ]),
 
     ?assertEqual(Encoded, EncodeResult),
-    ?assertEqual(Headers, DecodeResult),
-    ?assertEqual(Table, hpack_index:table(EncCtx)),
-    ?assertEqual(EncCtx, DecCtx),
+    ?assert(hpack_tutil:headers_equal(Headers, DecodeResult)),
+    ?assertEqual(Table, hpack_index:table(ECtx2)),
+    ?assertEqual(Table, hpack_index:table(DCtx2)),
+    ?assertEqual(ECtx2, DCtx2),
 
-    {ok, EncCtx}.
+    {ECtx2, DCtx2}.

@@ -14,7 +14,9 @@
     resize/2,
 
     decode/2,
-    encode/2
+    encode/2,
+
+    explain/2
 ]).
 
 
@@ -116,6 +118,25 @@ decode(Ctx, Bin) ->
     end.
 
 
+%% @doc
+%% Explain the decoding of a given HPack binary representation
+%%
+%% If successful, returns `[{bitstring(), any()}]' listing the
+%% steps decoding takes.
+%%
+%% For example:
+%% ```
+%% {Headers, NewContext} = hpack:decode(Binary, OldContext).
+%% '''
+-spec explain(context(), binary()) -> [{bitstring(), any()}].
+explain(Ctx, Bin) ->
+    try
+        explain(Ctx, Bin, [])
+    catch throw:{hpack_error, Error} ->
+        Error
+    end.
+
+
 encode(Ctx, [], Acc) ->
     {ok, Ctx, iolist_to_binary(lists:reverse(Acc))};
 
@@ -129,13 +150,13 @@ encode(Ctx, [{Name, Value, Opts} | Tail], Acc) ->
 
     {NewCtx, Encoded} = if
         NeverIndex and NoNameIndex ->
-            encode_never_index(Name, Value, Opts);
+            {Ctx, encode_never_index(Name, Value, Opts)};
         NeverIndex ->
-            encode_never_index(name_index(Ctx, Name), Value, Opts);
+            {Ctx, encode_never_index(name_index(Ctx, Name), Value, Opts)};
         NoIndex and NoNameIndex ->
-            encode_no_index(Name, Value, Opts);
+            {Ctx, encode_no_index(Name, Value, Opts)};
         NoIndex ->
-            encode_no_index(name_index(Ctx, Name), Value, Opts);
+            {Ctx, encode_no_index(name_index(Ctx, Name), Value, Opts)};
         true ->
             case hpack_index:match(Ctx, {Name, Value}) of
                 {hdr_indexed, Idx} ->
@@ -163,20 +184,20 @@ encode_never_index(Idx, Value, Opts) when is_integer(Idx) ->
     list_to_bitstring([Prefix, IdxBin, ValueBin]);
 
 encode_never_index(Name, Value, Opts) when is_binary(Name) ->
-    Prefix = <<2#00010000>>,
+    Prefix = <<2#0001:4, 0:4>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
     list_to_bitstring([Prefix, NameBin, ValueBin]).
 
 
 encode_no_index(Idx, Value, Opts) when is_integer(Idx) ->
-    Prefix = <<2#0000>>,
+    Prefix = <<2#0000:4>>,
     IdxBin = hpack_integer:encode(Idx, 4),
     ValueBin = hpack_string:encode(Value, Opts),
     list_to_bitstring([Prefix, IdxBin, ValueBin]);
 
 encode_no_index(Name, Value, Opts) when is_binary(Name) ->
-    Prefix = <<2#00000000>>,
+    Prefix = <<2#0000:4, 0:4>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
     list_to_bitstring([Prefix, NameBin, ValueBin]).
@@ -197,7 +218,7 @@ encode_indexed(Idx, Value, Opts) when is_integer(Idx) ->
     list_to_bitstring([Prefix, IdxBin, ValueBin]);
 
 encode_indexed(Name, Value, Opts) when is_binary(Name) ->
-    Prefix = <<2#01:2>>,
+    Prefix = <<2#01:2, 2#000000:6>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
     list_to_bitstring([Prefix, NameBin, ValueBin]).
@@ -206,7 +227,7 @@ encode_indexed(Name, Value, Opts) when is_binary(Name) ->
 name_index(Ctx, Name) when is_binary(Name) ->
     case hpack_index:match(Ctx, {Name, undefined}) of
         {_, Idx} when is_integer(Idx) -> Idx;
-        undefined -> Name
+        not_indexed -> Name
     end.
 
 
@@ -329,3 +350,172 @@ decode_size_update(Ctx, <<2#001:3, B1/bits>>, []) ->
 
 decode_size_update(_Ctx, Bin, _Acc) ->
     ?ERROR({invalid_packet, Bin}).
+
+
+
+explain(Ctx, <<>>, Acc) ->
+    {ok, Ctx, lists:reverse(Acc)};
+
+explain(Ctx, <<2#1:1, _/bits>> = Bin, Acc) ->
+    explain_indexed(Ctx, Bin, [{<<2#1:1>>, indexed_header} | Acc]);
+
+explain(Ctx, <<2#01:2, _/bits>> = Bin, Acc) ->
+    explain_and_index(Ctx, Bin, [{<<2#01:2>>, incremental_index} | Acc]);
+
+explain(Ctx, <<2#0000:4, _/bits>> = Bin, Acc) ->
+    explain_no_index(Ctx, Bin, [{<<2#0000:4>>, no_index} | Acc]);
+
+explain(Ctx, <<2#0001:4, _/bits>> = Bin, Acc) ->
+    explain_never_index(Ctx, Bin, [{<<2#0001:4>>, never_index} | Acc]);
+
+explain(Ctx, <<2#001:3, _/bits>> = Bin, Acc) ->
+    explain_size_update(Ctx, Bin, [{<<2#001:3>>, size_update} | Acc]);
+
+explain(_Ctx, Bin, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_packet, Bin}])).
+
+
+explain_indexed(_Ctx, <<2#1:1, 2#0000000:1, _/binary>>, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_index, 0}]));
+
+explain_indexed(Ctx, <<2#1:1, B1/bits>>, Acc) ->
+    {Idx, B2} = hpack_integer:decode(B1, 7),
+    Header = case hpack_index:lookup(Ctx, Idx) of
+        undefined ->
+            ?ERROR(lists:reverse(Acc, [{unknown_index, Idx}]));
+        Else ->
+            Else
+    end,
+    explain(Ctx, B2, [Header | Acc]).
+
+
+explain_and_index(Ctx, <<2#01:2, 2#000000:6, B1/bits>>, Acc) ->
+    {Name, B2} = hpack_string:explain(B1),
+    {Value, B3} = hpack_string:explain(B2),
+
+    NameBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, {string, Value}},
+        {NameBits, {string, Name}},
+        {<<2#000000:6>>, unindexed_name}
+    ] ++ Acc,
+
+    explain(hpack_index:add(Ctx, Name, Value), B3, NewAcc);
+
+explain_and_index(Ctx, <<2#01:2, B1/bits>>, Acc) ->
+    {Idx, B2} = hpack_integer:decode(B1, 6),
+    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
+        undefined ->
+            ?ERROR(lists:reverse(Acc, [{unknown_index, Idx}]));
+        Else ->
+            Else
+    end,
+    {Value, B3} = hpack_string:explain(B2),
+
+    IdxBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, Value},
+        {IdxBits, {indexed_name, Idx, Name}}
+    ] ++ Acc,
+
+    explain(hpack_index:add(Ctx, Name, Value), B3, NewAcc);
+
+explain_and_index(_Ctx, Bin, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_packet, Bin}])).
+
+
+explain_no_index(Ctx, <<2#0000:4, 2#0000:4, B1/bits>>, Acc) ->
+    {Name, B2} = hpack_string:explain(B1),
+    {Value, B3} = hpack_string:explain(B2),
+
+    NameBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, Value},
+        {NameBits, Name},
+        {<<2#0000:4>>, unindexed_name}
+    ] ++ Acc,
+
+    explain(Ctx, B3, NewAcc);
+
+explain_no_index(Ctx, <<2#0000:4, B1/bits>>, Acc) ->
+    {Idx, B2} = hpack_integer:decode(B1, 4),
+    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
+        undefined ->
+            ?ERROR(lists:reverse(Acc, [{invalid_index, Idx}]));
+        Else ->
+            Else
+    end,
+    {Value, B3} = hpack_string:explain(B2),
+
+    IdxBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, Value},
+        {IdxBits, {indexed_name, Idx, Name}}
+    ] ++ Acc,
+
+    explain(Ctx, B3, NewAcc);
+
+explain_no_index(_Ctx, Bin, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_packet, Bin}])).
+
+
+explain_never_index(Ctx, <<2#0001:4, 2#0000:4, B1/bits>>, Acc) ->
+    {Name, B2} = hpack_string:explain(B1),
+    {Value, B3} = hpack_string:explain(B2),
+
+    NameBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, Value},
+        {NameBits, Name},
+        {<<2#0000:4>>, unindexed_name}
+    ] ++ Acc,
+
+    explain(Ctx, B3, NewAcc);
+
+explain_never_index(Ctx, <<2#0001:4, B1/bits>>, Acc) ->
+    {Idx, B2} = hpack_integer:decode(B1, 4),
+    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
+        undefined -> ?ERROR({invalid_index, Idx});
+        Else -> Else
+    end,
+    {Value, B3} = hpack_string:explain(B2),
+
+    IdxBits = hdbinary(B1, B2),
+    ValueBits = hdbinary(B2, B3),
+
+    NewAcc = [
+        {ValueBits, Value},
+        {IdxBits, {indexed_name, Idx, Name}}
+    ] ++ Acc,
+
+    explain(Ctx, B3, NewAcc);
+
+explain_never_index(_Ctx, Bin, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_packet, Bin}])).
+
+
+% TODO: Test whether resize has to precede all headers
+explain_size_update(Ctx, <<2#001:3, B1/bits>>, Acc) ->
+    {NewSize, B2} = hpack_integer:decode(B1, 5),
+    UpdateBits = hdbinary(B1, B2),
+    NewAcc = [{UpdateBits, {new_size, NewSize}} | Acc],
+    explain(resize(Ctx, NewSize), B2, NewAcc);
+
+explain_size_update(_Ctx, Bin, Acc) ->
+    ?ERROR(lists:reverse(Acc, [{invalid_packet, Bin}])).
+
+
+hdbinary(B1, B2) when bit_size(B1) > bit_size(B2) ->
+    Len = bit_size(B1) - bit_size(B2),
+    <<H:Len/bits, _/bits>> = B1,
+    H.

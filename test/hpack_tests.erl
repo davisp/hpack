@@ -23,7 +23,7 @@ basic_nghttp2_request_test() ->
     ],
 
     {ok, _NewCtx1, DecResult} = hpack:decode(hpack:new_context(), Encoded),
-    ?assertEqual(Decoded, DecResult),
+    ?assert(hpack_tutil:headers_equal(Decoded, DecResult)),
 
     {ok, _NewCtx2, EncResult} = hpack:encode(hpack:new_context(), Decoded),
     ?assertEqual(Encoded, EncResult).
@@ -46,18 +46,18 @@ decode_1_test() ->
         {<<":path">>, <<"/">>},
         {<<":scheme">>, <<"http">>},
         {<<":authority">>, <<"localhost:8081">>},
-        {<<"accept">>, <<"*/*">>, [uncompressed]},
+        {<<"accept">>, <<"*/*">>},
         {<<"accept-encoding">>, <<"gzip, deflate">>},
         {<<"user-agent">>, <<"nghttp2/0.7.11">>},
-        {<<"x-tyktorp">>, <<"B">>, [uncompressed]},
-        {<<"x-tyktorp">>, <<"O">>, [uncompressed]},
-        {<<"x-meow">>, <<"p">>, [uncompressed]},
-        {<<"x-meow">>, <<"t">>, [uncompressed]},
-        {<<"x-tyktorp">>, <<"t">>, [uncompressed]}
+        {<<"x-tyktorp">>, <<"B">>},
+        {<<"x-tyktorp">>, <<"O">>},
+        {<<"x-meow">>, <<"p">>},
+        {<<"x-meow">>, <<"t">>},
+        {<<"x-tyktorp">>, <<"t">>}
     ],
 
     {ok, _NewCtx1, DecResult} = hpack:decode(hpack:new_context(), Encoded),
-    ?assertEqual(Decoded, DecResult),
+    ?assert(hpack_tutil:headers_equal(Decoded, DecResult)),
 
     {ok, _NewCtx2, EncResult} = hpack:encode(hpack:new_context(), Decoded),
     ?assertEqual(Encoded, EncResult).

@@ -3,6 +3,8 @@
 
 
 -export([
+    headers_equal/2,
+
     random_int/0,
     random_int/1,
 
@@ -11,6 +13,18 @@
 
     dehex/1
 ]).
+
+
+headers_equal([], []) ->
+    true;
+headers_equal([{N, V} | RestL], [{N, V} | RestR]) ->
+    headers_equal(RestL, RestR);
+headers_equal([{N, V, _O} | RestL], RestR) ->
+    headers_equal([{N, V} | RestL], RestR);
+headers_equal(RestL, [{N, V, _P} | RestR]) ->
+    headers_equal(RestL, [{N, V} | RestR]);
+headers_equal([H1 | _], [H2 | _]) ->
+    erlang:error({not_equal, H1, H2}).
 
 
 random_int() ->

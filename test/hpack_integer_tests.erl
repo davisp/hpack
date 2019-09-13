@@ -60,7 +60,7 @@ roundtrip_sequential_test() ->
         lists:foreach(fun(PrefixBits) ->
             roundtrip(Value, PrefixBits)
         end, lists:seq(1, 8))
-    end, lists:seq(0, 1024)).
+    end, lists:seq(0, 512)).
 
 
 roundtrip_random_test() ->
@@ -69,7 +69,7 @@ roundtrip_random_test() ->
         lists:foreach(fun(PrefixBits) ->
             roundtrip(Value, PrefixBits)
         end, lists:seq(1, 8))
-    end, lists:seq(0, 1024)).
+    end, lists:seq(0, 512)).
 
 
 roundtrip(Value, PrefixBits) ->

@@ -65,8 +65,9 @@ lookup(_Ctx, Idx) when Idx > 0, Idx < ?DYNAMIC_TABLE_MIN_INDEX ->
     element(Idx, ?STATIC_TABLE);
 
 lookup(#hpack_ctx{} = Ctx, Idx) ->
-    case lists:keyfind(Idx, 1, Ctx#hpack_ctx.table) of
-        {Idx, Name, Value} -> {Name, Value};
+    DynamicIdx = Idx - ?DYNAMIC_TABLE_MIN_INDEX + 1,
+    case lists:keyfind(DynamicIdx, 1, Ctx#hpack_ctx.table) of
+        {DynamicIdx, Name, Value} -> {Name, Value};
         false -> undefined
     end.
 
@@ -82,15 +83,23 @@ match(#hpack_ctx{} = Ctx, {Name, Value}) ->
     % 4. A name only dynamic match
     try
         case static_exact({Name, Value}) of
-            I1 when is_integer(I1) -> throw({hdr_indexed, I1});
-            undefined -> ok
+            I1 when is_integer(I1) ->
+                throw({hdr_indexed, I1});
+            undefined ->
+                ok
         end,
 
         DynamicNameIdx = lists:foldl(fun({I, N, V}, Acc) ->
-            if N == Name, V /= Value -> ok; true ->
-                throw({hdr_indexed, I})
+            case Name == N andalso Value == V of
+                true ->
+                    throw({hdr_indexed, I + ?DYNAMIC_TABLE_MIN_INDEX - 1});
+                false ->
+                    ok
             end,
-            if Acc /= undefined -> Acc; true -> I end
+            case Name == N andalso Acc == undefined of
+                true -> I + ?DYNAMIC_TABLE_MIN_INDEX - 1;
+                false -> Acc
+            end
         end, undefined, Ctx#hpack_ctx.table),
 
         case {static_name(Name), DynamicNameIdx} of
@@ -147,7 +156,7 @@ add_entry(Ctx, Name, Value, EntrySize) ->
         cur_size = CurSize
     } = Ctx,
     Ctx#hpack_ctx{
-        table = [{?DYNAMIC_TABLE_MIN_INDEX, Name, Value} | Table],
+        table = [{1, Name, Value} | Table],
         cur_size = CurSize + EntrySize
     }.
 
