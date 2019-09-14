@@ -279,6 +279,14 @@ c_6_test() ->
     Hex2 = <<"
         4883 640e ffc1 c0bf
     ">>,
+    % This is a bit odd but I'd rather call out that I'm
+    % tweaking the RFC example data. This change replaces
+    % the huffman encoded 307 status code with an unencoded
+    % string. This is due to the Huffman encoding being the
+    % same number of bytes as the unencoded version and our
+    % huffman encoder prefers the original for the same
+    % length string to match Nginx behavior.
+    Patch = {1, 4, <<3, 51, 48, 55>>},
     Table2 = {222, [
         {1, <<":status">>, <<"307">>},
         {2, <<"location">>, <<"https://www.example.com">>},
@@ -316,20 +324,20 @@ c_6_test() ->
 
     {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
     {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
-    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
+    {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2, Patch),
     check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
 
 
+check_correct(ECtx, DCtx, Headers, HexEncoded, Table) ->
+    check_correct(ECtx, DCtx, Headers, HexEncoded, Table, undefined).
 
-check_correct(ECtx1, DCtx1, Headers, HexEncoded, Table) ->
-    Encoded = hpack_tutil:dehex(HexEncoded),
+
+check_correct(ECtx1, DCtx1, Headers, HexEncoded, Table, Patch) ->
+    EncodedPrePatch = hpack_tutil:dehex(HexEncoded),
+    Encoded = patch(EncodedPrePatch, Patch),
+
     {ok, ECtx2, EncodeResult} = hpack:encode(ECtx1, Headers),
     {ok, DCtx2, DecodeResult} = hpack:decode(DCtx1, Encoded),
-
-    io:format(standard_error, "~n========~n~p~n~n~p~n~n", [
-        hpack:explain(DCtx1, Encoded),
-        hpack:explain(DCtx1, EncodeResult)
-    ]),
 
     ?assertEqual(Encoded, EncodeResult),
     ?assert(hpack_tutil:headers_equal(Headers, DecodeResult)),
@@ -338,3 +346,13 @@ check_correct(ECtx1, DCtx1, Headers, HexEncoded, Table) ->
     ?assertEqual(ECtx2, DCtx2),
 
     {ECtx2, DCtx2}.
+
+
+patch(Orig, undefined) ->
+    Orig;
+
+patch(Orig, {Offset, Len, Replacement}) ->
+    Before = binary:part(Orig, 0, Offset),
+    After = binary:part(Orig, Offset + Len, size(Orig) - Offset - Len),
+    <<Before/binary, Replacement/binary, After/binary>>.
+

@@ -11,7 +11,7 @@
 ]).
 
 
--spec encode(non_neg_integer(), pos_integer()) -> binary().
+-spec encode(non_neg_integer(), pos_integer()) -> bitstring().
 encode(  1, 1) -> <<  1:1, 0:8>>;
 encode(  3, 2) -> <<  3:2, 0:8>>;
 encode(  7, 3) -> <<  7:3, 0:8>>;
@@ -27,16 +27,17 @@ encode(Int, N) when is_integer(Int), is_integer(N), Int < (1 bsl N - 1) ->
 encode(Int, N) when is_integer(Int), is_integer(N) ->
     Prefix = 1 bsl N - 1,
     Remaining = Int - Prefix,
-    encode(Remaining, [<<Prefix:N>>]);
+    encode_int(Remaining, [<<Prefix:N>>]).
 
-encode(Int, Acc) when is_integer(Int), is_list(Acc) ->
+-spec encode_int(non_neg_integer(), [bitstring()]) -> bitstring().
+encode_int(Int, Acc) when is_integer(Int), is_list(Acc) ->
     ThisByte = (Int rem 128),
     RestInt = Int bsr 7,
     case RestInt of
         0 ->
             list_to_bitstring(lists:reverse(Acc, [<<ThisByte:8>>]));
         _ ->
-            encode(RestInt, [<<1:1, ThisByte:7>> | Acc])
+            encode_int(RestInt, [<<1:1, ThisByte:7>> | Acc])
     end.
 
 

@@ -390,15 +390,15 @@ explain_indexed(Ctx, <<2#1:1, B1/bits>>, Acc) ->
 
 
 explain_and_index(Ctx, <<2#01:2, 2#000000:6, B1/bits>>, Acc) ->
-    {Name, B2} = hpack_string:explain(B1),
-    {Value, B3} = hpack_string:explain(B2),
+    {Name, NameInfo, B2} = hpack_string:explain(B1),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     NameBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, {string, Value}},
-        {NameBits, {string, Name}},
+        {ValueBits, {string, ValueInfo, Value}},
+        {NameBits, {string, NameInfo, Name}},
         {<<2#000000:6>>, unindexed_name}
     ] ++ Acc,
 
@@ -412,13 +412,13 @@ explain_and_index(Ctx, <<2#01:2, B1/bits>>, Acc) ->
         Else ->
             Else
     end,
-    {Value, B3} = hpack_string:explain(B2),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     IdxBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, Value},
+        {ValueBits, {string, ValueInfo, Value}},
         {IdxBits, {indexed_name, Idx, Name}}
     ] ++ Acc,
 
@@ -429,15 +429,15 @@ explain_and_index(_Ctx, Bin, Acc) ->
 
 
 explain_no_index(Ctx, <<2#0000:4, 2#0000:4, B1/bits>>, Acc) ->
-    {Name, B2} = hpack_string:explain(B1),
-    {Value, B3} = hpack_string:explain(B2),
+    {Name, NameInfo, B2} = hpack_string:explain(B1),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     NameBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, Value},
-        {NameBits, Name},
+        {ValueBits, {string, ValueInfo, Value}},
+        {NameBits, {string, NameInfo, Name}},
         {<<2#0000:4>>, unindexed_name}
     ] ++ Acc,
 
@@ -451,13 +451,13 @@ explain_no_index(Ctx, <<2#0000:4, B1/bits>>, Acc) ->
         Else ->
             Else
     end,
-    {Value, B3} = hpack_string:explain(B2),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     IdxBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, Value},
+        {ValueBits, {string, ValueInfo, Value}},
         {IdxBits, {indexed_name, Idx, Name}}
     ] ++ Acc,
 
@@ -468,15 +468,15 @@ explain_no_index(_Ctx, Bin, Acc) ->
 
 
 explain_never_index(Ctx, <<2#0001:4, 2#0000:4, B1/bits>>, Acc) ->
-    {Name, B2} = hpack_string:explain(B1),
-    {Value, B3} = hpack_string:explain(B2),
+    {Name, NameInfo, B2} = hpack_string:explain(B1),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     NameBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, Value},
-        {NameBits, Name},
+        {ValueBits, {string, ValueInfo, Value}},
+        {NameBits, {string, NameInfo, Name}},
         {<<2#0000:4>>, unindexed_name}
     ] ++ Acc,
 
@@ -488,13 +488,13 @@ explain_never_index(Ctx, <<2#0001:4, B1/bits>>, Acc) ->
         undefined -> ?ERROR({invalid_index, Idx});
         Else -> Else
     end,
-    {Value, B3} = hpack_string:explain(B2),
+    {Value, ValueInfo, B3} = hpack_string:explain(B2),
 
     IdxBits = hdbinary(B1, B2),
     ValueBits = hdbinary(B2, B3),
 
     NewAcc = [
-        {ValueBits, Value},
+        {ValueBits, {string, ValueInfo, Value}},
         {IdxBits, {indexed_name, Idx, Name}}
     ] ++ Acc,
 

@@ -37,19 +37,19 @@ encode(<<>>, Acc, Size, OrigSize) ->
         7 -> [<<127:7>>];
         8 -> []
     end,
-    Extra = if Remainder == 0 -> 0; true -> 8 - Remainder end,
-    if Size + Extra < OrigSize -> ok; true ->
+    Padding = if Remainder > 0 -> 8 - Remainder; true -> 0 end,
+    if Padding + Size < OrigSize -> ok; true ->
         throw(compressed_larger)
     end,
     list_to_bitstring(lists:reverse(Acc, Tail));
 
 encode(<<Byte:8, Rest/binary>>, Acc, Size, OrigSize) ->
     Code = element(Byte + 1, ?HUFFMAN_CODES),
-    if Size + bit_size(Code) < OrigSize -> ok; true ->
-        io:format(standard_error, "b: ~p vs ~p~n", [Size + bit_size(Code), OrigSize]),
+    NewSize = Size + bit_size(Code),
+    if NewSize < OrigSize -> ok; true ->
         throw(compressed_larger)
     end,
-    encode(Rest, [Code | Acc], Size + bit_size(Code), OrigSize).
+    encode(Rest, [Code | Acc], NewSize, OrigSize).
 
 
 decode(<<>>, _, _, ZeroSeen, Acc) ->
