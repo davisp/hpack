@@ -348,8 +348,8 @@ decode_size_update(Ctx, <<2#001:3, B1/bits>>, []) ->
     {NewSize, B2} = hpack_integer:decode(B1, 5),
     decode(resize(Ctx, NewSize), B2, []);
 
-decode_size_update(_Ctx, Bin, _Acc) ->
-    ?ERROR({invalid_packet, Bin}).
+decode_size_update(_Ctx, _Bin, Acc) when length(Acc) > 0 ->
+    ?ERROR({invalid_size_update, headers_received}).
 
 
 

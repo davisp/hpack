@@ -26,6 +26,16 @@ basic_decode_with_huffman_test() ->
     ?assertEqual({<<"Commands">>, <<>>}, hpack_string:decode(Bin)).
 
 
+short_string_uncompressed_test() ->
+    % 302 can compress into two bytes
+    ?assertEqual(<<130, 100, 2>>, hpack_string:encode(<<"302">>, [])),
+    % 307 takes three bytes which is equivalent
+    % to the uncompressed versions so that's
+    % what we use.
+    ?assertEqual(<<3, "307">>, hpack_string:encode(<<"307">>, [])).
+
+
+
 roundtrip_sequential_test() ->
     lists:foreach(fun(IntValue) ->
         roundtrip(integer_to_binary(IntValue), []),

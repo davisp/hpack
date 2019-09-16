@@ -112,6 +112,7 @@ decode_literal_without_indexing_new_test() ->
     ),
     ?assertEqual(hpack:new_context(), NewCtx).
 
+
 decode_literal_never_indexed_indexed_test() ->
     Bin = <<2#00011111, 2#00101011, 2#00000111, "Firefox">>,
     {ok, NewCtx, Result} = hpack:decode(hpack:new_context(), Bin),
@@ -144,6 +145,12 @@ compression_error_on_too_large_size_increase_test() ->
     ?assertEqual({error, {invalid_table_size, 4097}}, Error).
 
 
+compression_error_on_size_adjustment_after_headers_test() ->
+    Bin = <<2#10001000, 2#001:3,255,16,0:5>>,
+    Error = hpack:decode(hpack:new_context(), Bin),
+    ?assertEqual({error, {invalid_size_update, headers_received}}, Error).
+
+
 no_compression_error_on_small_enough_adjustment_test() ->
     Bin = <<2#001:3,255,16,0:5>>,
     ?assertMatch({ok, _NewCtx, []}, hpack:decode(hpack:new_context(), Bin)).
@@ -154,6 +161,6 @@ no_compression_error_on_two_adjustments_test() ->
     ?assertMatch({ok, _NewCtx, []}, hpack:decode(hpack:new_context(), Bin)).
 
 
-compression_error_on_indexed_fieed_no_value_test() ->
+compression_error_on_indexed_field_no_value_test() ->
     Result = hpack:decode(hpack:new_context(), <<16#40>>),
     ?assertEqual({error, {invalid_string, no_data}}, Result).

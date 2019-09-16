@@ -1,11 +1,7 @@
 Tests
 ===
 
-Test decision on compression short strings? I.e., should we ship ship strings
-smaller than a few bytes without huffman encoding?
-
-Does dynamic size change need to precede all headers?
-
+Use these: https://github.com/http2jp/hpack-test-case
 
 Test invalid packet returns rest of the binary
 
