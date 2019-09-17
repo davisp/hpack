@@ -9,7 +9,7 @@ REBAR3 ?= $(shell which rebar3)
 
 
 all: $(REBAR3)
-	@$(REBAR3) do clean, compile, eunit, ct, dialyzer
+	@$(REBAR3) do compile, eunit, dialyzer
 
 
 rel: all
