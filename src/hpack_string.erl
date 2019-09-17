@@ -6,8 +6,6 @@
     encode/2,
     decode/1,
 
-    explain/1,
-
     is_uncompressed/1,
     any_uncompressed/1
 ]).
@@ -50,17 +48,6 @@ decode(<<Huff:1, B1/bits>>) ->
     end,
     {Value, B3}.
 
--spec explain(binary()) -> {binary(), any(), binary()}.
-explain(<<Huff:1, B1/bits>>) ->
-    {Length, B2} = hpack_integer:decode(B1, 7),
-    <<Data:Length/binary, B3/bits>> = B2,
-    LenBits = hdbinary(B1, B2),
-    {Info, Value} = case Huff of
-        0 -> {{LenBits, Length, uncompressed}, Data};
-        1 -> {{LenBits, Length, compressed}, hpack_huffman:decode(Data)}
-    end,
-    {Value, Info, B3}.
-
 
 is_uncompressed(<<0:1, _/bits>>) -> true;
 is_uncompressed(<<1:1, _/bits>>) -> false.
@@ -68,9 +55,3 @@ is_uncompressed(<<1:1, _/bits>>) -> false.
 
 any_uncompressed(Bins) when is_list(Bins) ->
     lists:any(fun is_uncompressed/1, Bins).
-
-
-hdbinary(B1, B2) when bit_size(B1) > bit_size(B2) ->
-    Len = bit_size(B1) - bit_size(B2),
-    <<H:Len/bits, _/bits>> = B1,
-    H.
