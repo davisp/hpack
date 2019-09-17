@@ -95,3 +95,32 @@ nibble($e) -> 14;
 nibble($E) -> 14;
 nibble($f) -> 15;
 nibble($F) -> 15.
+
+
+-ifdef(TEST).
+
+-include_lib("eunit/include/eunit.hrl").
+
+
+headers_not_equal_test() ->
+    ?assertError({not_equal, _, _}, headers_equal([{a, b}], [{a, c}])),
+    ?assertError({not_equal, _, _}, headers_equal([{a, b}], [{c, d}])),
+    ?assertError({not_equal, _, _}, headers_equal([{a, b}], [{c, b}])).
+
+
+random_test() ->
+    ?assert(is_integer(random_int())),
+    ?assert(is_integer(random_int(10))),
+    ?assert(random_int(10) =< 10),
+    ?assert(is_binary(random_bin())),
+    ?assert(is_binary(random_bin(10))),
+    ?assert(size(random_bin(10)) == 10).
+
+
+hex_test() ->
+    lists:foreach(fun(Val) ->
+        Bin = list_to_binary(io_lib:format("~2.16.0B", [Val])),
+        ?assertEqual(<<Val:8>>, dehex(Bin))
+    end, lists:seq(0, 255)).
+
+-endif.

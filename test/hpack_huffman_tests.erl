@@ -12,3 +12,23 @@ www_example_com_test() ->
     >>,
     ?assertEqual(Expect, hpack_huffman:encode(<<"www.example.com">>)),
     ?assertEqual(<<"www.example.com">>, hpack_huffman:decode(Expect)).
+
+
+invalid_eos_padding_test() ->
+    ?assertEqual(<<"foo">>, hpack_huffman:decode(<<148, 231>>)),
+    ?assertThrow(
+            {hpack_error, {invalid_huffman_encoding, partial_code}},
+            hpack_huffman:decode(<<148, 231, 0>>)
+        ).
+
+
+invalid_internal_eos_test() ->
+    Bin = <<
+        16#25:6, % "f"
+        16#3fffffff:30, % "eos"
+        16#ffa:12 % "#"
+    >>,
+    ?assertThrow(
+            {hpack_error, {invalid_huffman_encoding, internal_eos}},
+            hpack_huffman:decode(Bin)
+        ).

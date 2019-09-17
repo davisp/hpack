@@ -160,47 +160,44 @@ encode_never_index(Idx, Value, Opts) when is_integer(Idx) ->
     Prefix = <<2#0001:4>>,
     IdxBin = hpack_integer:encode(Idx, 4),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, IdxBin, ValueBin]);
+    <<Prefix/bits, IdxBin/bits, ValueBin/bits>>;
 
 encode_never_index(Name, Value, Opts) when is_binary(Name) ->
     Prefix = <<2#0001:4, 0:4>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, NameBin, ValueBin]).
+    <<Prefix/bits, NameBin/bits, ValueBin/bits>>.
 
 
 encode_no_index(Idx, Value, Opts) when is_integer(Idx) ->
     Prefix = <<2#0000:4>>,
     IdxBin = hpack_integer:encode(Idx, 4),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, IdxBin, ValueBin]);
+    <<Prefix/bits, IdxBin/bits, ValueBin/bits>>;
 
 encode_no_index(Name, Value, Opts) when is_binary(Name) ->
     Prefix = <<2#0000:4, 0:4>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, NameBin, ValueBin]).
+    <<Prefix/bits, NameBin/bits, ValueBin/bits>>.
 
-
-encode_indexed(Idx) when Idx < 63 ->
-    <<2#1:1, Idx:7>>;
 
 encode_indexed(Idx) ->
-    Encoded = hpack_integer:encode(Idx, 7),
-    <<2#1:1, Encoded/bits>>.
+    IdxBin = hpack_integer:encode(Idx, 7),
+    <<2#1:1, IdxBin/bits>>.
 
 
 encode_indexed(Idx, Value, Opts) when is_integer(Idx) ->
     Prefix = <<2#01:2>>,
     IdxBin = hpack_integer:encode(Idx, 6),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, IdxBin, ValueBin]);
+    <<Prefix/bits, IdxBin/bits, ValueBin/bits>>;
 
 encode_indexed(Name, Value, Opts) when is_binary(Name) ->
     Prefix = <<2#01:2, 2#000000:6>>,
     NameBin = hpack_string:encode(Name, Opts),
     ValueBin = hpack_string:encode(Value, Opts),
-    list_to_bitstring([Prefix, NameBin, ValueBin]).
+    <<Prefix/bits, NameBin/bits, ValueBin/bits>>.
 
 
 name_index(Ctx, Name) when is_binary(Name) ->
