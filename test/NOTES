@@ -5,8 +5,6 @@ Use these: https://github.com/http2jp/hpack-test-case
 
 Test invalid packet returns rest of the binary
 
-Encode dynamic index 63 in a single byte
-
 Resize to bigger does not evict elements
 Resizing evicts for each:
     0 elements
