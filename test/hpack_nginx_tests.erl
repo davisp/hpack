@@ -3,11 +3,9 @@
 -include_lib("eunit/include/eunit.hrl").
 
 
--define(DATA_FILE, "test/nginx.data").
-
 
 nginx_test_() ->
-    {ok, Stories} = file:consult(?DATA_FILE),
+    Stories = load_file(),
     lists:map(fun({Story, Cases}) ->
         {atom_to_list(Story), fun() -> run_story(Cases) end}
     end, Stories).
@@ -39,3 +37,15 @@ run_case(Ctx0, {Size, Wire, Headers}) ->
 
     Ctx2.
 
+
+load_file() ->
+    Paths = [
+        "test/nginx.data",
+        "../test/nginx.data"
+    ],
+    lists:foldl(fun(Path, Acc) ->
+        case file:consult(Path) of
+            {ok, Stories} -> Stories ++ Acc;
+            {error, _} -> Acc
+        end
+    end, [], Paths).
