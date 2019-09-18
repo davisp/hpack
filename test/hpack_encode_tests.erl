@@ -4,11 +4,10 @@
 
 
 encode_static_indexed_test() ->
-    Encoded = <<2#10:2, 2#000010:6>>,
-    Ctx = hpack:new_context(),
+    Encoded = <<2#1:1, 2#0000010:7>>,
     ?assertMatch(
             {ok, _, Encoded},
-            hpack:encode(Ctx, [{<<":method">>, <<"GET">>}])
+            hpack:encode(hpack:new(), [{<<":method">>, <<"GET">>}])
         ).
 
 
@@ -220,14 +219,17 @@ encode_unknown_name_unindexed_test() ->
     check_combinations(Combinations, <<"custom-name">>, <<"custom-value">>).
 
 
+encode_invalid_header_test() ->
+    ?assertEqual(
+            {error, {invalid_header, foo}},
+            hpack:encode(hpack:new(), [foo])
+        ).
+
+
 check_combinations(Combinations, Name, Value) ->
-    Ctx = hpack:new_context(),
     lists:foreach(fun({Opts, Parts}) ->
         <<Expect/binary>> = list_to_bitstring(Parts),
         Headers = [{Name, Value, Opts}],
-        {ok, _, Result} = hpack:encode(Ctx, Headers),
-        if Expect == Result -> ok; true ->
-            io:format(standard_error, "~n~p~n~p~n", [Expect, Result])
-        end,
+        {ok, _, Result} = hpack:encode(hpack:new(), Headers),
         ?assertEqual(Expect, Result)
     end, Combinations).

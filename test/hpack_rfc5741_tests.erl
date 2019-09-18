@@ -26,7 +26,7 @@ c_2_1_test() ->
         {1, <<"custom-key">>, <<"custom-header">>}
     ]},
 
-    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    {ECtx, DCtx} = {hpack:new(), hpack:new()},
     check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
@@ -39,7 +39,7 @@ c_2_2_test() ->
     ">>,
     Table = {0, []},
 
-    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    {ECtx, DCtx} = {hpack:new(), hpack:new()},
     check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
@@ -54,7 +54,7 @@ c_2_3_test() ->
     ">>,
     Table = {0, []},
 
-    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    {ECtx, DCtx} = {hpack:new(), hpack:new()},
     check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
@@ -65,7 +65,7 @@ c_2_4_test() ->
     ">>,
     Table = {0, []},
 
-    {ECtx, DCtx} = {hpack:new_context(), hpack:new_context()},
+    {ECtx, DCtx} = {hpack:new(), hpack:new()},
     check_correct(ECtx, DCtx, Headers, Hex, Table).
 
 
@@ -117,7 +117,7 @@ c_3_test() ->
         {3, <<":authority">>, <<"www.example.com">>}
     ]},
 
-    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx1, DCtx1} = {hpack:new(256), hpack:new(256)},
     {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
     {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
     check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
@@ -170,7 +170,7 @@ c_4_test() ->
         {3, <<":authority">>, <<"www.example.com">>}
     ]},
 
-    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx1, DCtx1} = {hpack:new(256), hpack:new(256)},
     {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
     {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
     check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
@@ -244,7 +244,7 @@ c_5_test() ->
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>}
     ]},
 
-    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx1, DCtx1} = {hpack:new(256), hpack:new(256)},
     {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
     {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2),
     check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).
@@ -322,7 +322,7 @@ c_6_test() ->
         {3, <<"date">>, <<"Mon, 21 Oct 2013 20:13:22 GMT">>}
     ]},
 
-    {ECtx1, DCtx1} = {hpack:new_context(256), hpack:new_context(256)},
+    {ECtx1, DCtx1} = {hpack:new(256), hpack:new(256)},
     {ECtx2, DCtx2} = check_correct(ECtx1, DCtx1, Headers1, Hex1, Table1),
     {ECtx3, DCtx3} = check_correct(ECtx2, DCtx2, Headers2, Hex2, Table2, Patch),
     check_correct(ECtx3, DCtx3, Headers3, Hex3, Table3).

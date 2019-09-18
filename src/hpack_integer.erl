@@ -41,7 +41,7 @@ encode_int(Int, Acc) when is_integer(Int), is_list(Acc) ->
     end.
 
 
--spec decode(binary(), pos_integer()) -> {non_neg_integer(), binary()}.
+-spec decode(bitstring(), pos_integer()) -> {non_neg_integer(), binary()}.
 decode(<<  1:1, Bin/bits>>, 1) -> decode(Bin, 1,   1);
 decode(<<  3:2, Bin/bits>>, 2) -> decode(Bin, 1,   3);
 decode(<<  7:3, Bin/bits>>, 3) -> decode(Bin, 1,   7);

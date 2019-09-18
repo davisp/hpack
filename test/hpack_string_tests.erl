@@ -35,6 +35,12 @@ short_string_uncompressed_test() ->
     ?assertEqual(<<3, "307">>, hpack_string:encode(<<"307">>, [])).
 
 
+empty_binary_test() ->
+    ?assertThrow(
+            {hpack_error, {invalid_string, no_data}},
+            hpack_string:decode(<<>>)
+        ).
+
 
 roundtrip_sequential_test() ->
     lists:foreach(fun(IntValue) ->
