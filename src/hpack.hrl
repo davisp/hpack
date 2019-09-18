@@ -15,9 +15,7 @@
 -type header_name() :: binary().
 -type header_value() :: binary().
 -type header_opt() :: never_index | no_index | no_name_index | uncompressed.
--type header() ::
-    {header_name(), header_value()} |
-    {header_name(), header_value(), [header_opt()]}.
+-type header() :: {header_name(), header_value(), [header_opt()]}.
 -type headers() :: [header()].
 -type index_entry() :: {pos_integer(), header_name(), header_value()}.
 

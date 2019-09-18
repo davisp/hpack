@@ -72,7 +72,7 @@ lookup(#hpack_ctx{} = Ctx, Idx) ->
     end.
 
 
--spec match(context(), header()) -> match_result().
+-spec match(context(), {header_name(), header_value()}) -> match_result().
 match(#hpack_ctx{} = Ctx, {Name, Value}) ->
     % The order of preference for finding a usable cached
     % header index is:

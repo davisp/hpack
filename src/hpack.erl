@@ -235,8 +235,8 @@ decode_indexed(_Ctx, <<2#1:1, 2#0000000:7, _/binary>>, _Acc) ->
 decode_indexed(Ctx, <<2#1:1, B1/bits>>, Acc) ->
     {Idx, B2} = hpack_integer:decode(B1, 7),
     Header = case hpack_index:lookup(Ctx, Idx) of
-        undefined -> ?ERROR({unknown_index, Idx});
-        Else -> Else
+        {N, V} -> {N, V, []};
+        undefined -> ?ERROR({unknown_index, Idx})
     end,
     decode(Ctx, B2, [Header | Acc]).
 
@@ -246,20 +246,20 @@ decode_and_index(Ctx, <<2#01:2, 2#000000:6, B1/bits>>, Acc) ->
     {Value, B3} = hpack_string:decode(B2),
     Header = case hpack_string:any_uncompressed([B1, B2]) of
         true -> {Name, Value, [uncompressed]};
-        false -> {Name, Value}
+        false -> {Name, Value, []}
     end,
     decode(hpack_index:add(Ctx, Name, Value), B3, [Header | Acc]);
 
 decode_and_index(Ctx, <<2#01:2, B1/bits>>, Acc) ->
     {Idx, B2} = hpack_integer:decode(B1, 6),
-    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
-        undefined -> ?ERROR({unknown_index, Idx});
-        Else -> Else
+    Name = case hpack_index:lookup(Ctx, Idx) of
+        {N, _} -> N;
+        undefined -> ?ERROR({unknown_index, Idx})
     end,
     {Value, B3} = hpack_string:decode(B2),
     Header = case hpack_string:is_uncompressed(B2) of
         true -> {Name, Value, [uncompressed]};
-        false -> {Name, Value}
+        false -> {Name, Value, []}
     end,
     decode(hpack_index:add(Ctx, Name, Value), B3, [Header | Acc]).
 
@@ -275,9 +275,9 @@ decode_no_index(Ctx, <<2#0000:4, 2#0000:4, B1/bits>>, Acc) ->
 
 decode_no_index(Ctx, <<2#0000:4, B1/bits>>, Acc) ->
     {Idx, B2} = hpack_integer:decode(B1, 4),
-    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
-        undefined -> ?ERROR({unknown_index, Idx});
-        Else -> Else
+    Name = case hpack_index:lookup(Ctx, Idx) of
+        {N, _} -> N;
+        undefined -> ?ERROR({unknown_index, Idx})
     end,
     {Value, B3} = hpack_string:decode(B2),
     Header = case hpack_string:is_uncompressed(B2) of
@@ -298,9 +298,9 @@ decode_never_index(Ctx, <<2#0001:4, 2#0000:4, B1/bits>>, Acc) ->
 
 decode_never_index(Ctx, <<2#0001:4, B1/bits>>, Acc) ->
     {Idx, B2} = hpack_integer:decode(B1, 4),
-    {Name, _} = case hpack_index:lookup(Ctx, Idx) of
-        undefined -> ?ERROR({unknown_index, Idx});
-        Else -> Else
+    Name = case hpack_index:lookup(Ctx, Idx) of
+        {N, _} -> N;
+        undefined -> ?ERROR({unknown_index, Idx})
     end,
     {Value, B3} = hpack_string:decode(B2),
     Header = case hpack_string:is_uncompressed(B2) of
